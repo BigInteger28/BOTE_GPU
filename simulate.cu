@@ -214,14 +214,14 @@ extern "C" void simulateDepthVsFixedCUDA(const char* generatedEngines, int numGe
     char *d_generatedEngines, *d_fixedInputEngines;
     int *d_scoreDiffs;
 
-    // Alloceer geheugen op de GPU
-    cudaMalloc(&d_generatedEngines, numGenerated * 16 * sizeof(char));
-    cudaMalloc(&d_fixedInputEngines, numFixed * 16 * sizeof(char));
+    // Alloceer geheugen op de GPU met de juiste grootte
+    cudaMalloc(&d_generatedEngines, numGenerated * 12 * sizeof(char));  // 12 bytes per generated engine
+    cudaMalloc(&d_fixedInputEngines, numFixed * 13 * sizeof(char));     // 13 bytes per fixed engine
     cudaMalloc(&d_scoreDiffs, numGenerated * numFixed * sizeof(int));
 
-    // Kopieer data van host naar GPU
-    cudaMemcpy(d_generatedEngines, generatedEngines, numGenerated * 16 * sizeof(char), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_fixedInputEngines, fixedInputEngines, numFixed * 16 * sizeof(char), cudaMemcpyHostToDevice);
+    // Kopieer data van host naar GPU met de juiste grootte
+    cudaMemcpy(d_generatedEngines, generatedEngines, numGenerated * 12 * sizeof(char), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_fixedInputEngines, fixedInputEngines, numFixed * 13 * sizeof(char), cudaMemcpyHostToDevice);
 
     // Definieer block- en griddimensies
     dim3 blockDim(32, 32);
