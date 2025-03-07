@@ -310,7 +310,7 @@ func evaluateBatchGPU(engines []string, depthInputEngines []string, fixedInputEn
 	return totalScores
 }
 
-func evaluateBatch(engines []string, inputEngines []string, top10000Chan chan<- engineResult, progressComparisons *int64, numInputEngines int) {
+func evaluateBatch(engines []string, inputEngines []string, top100000Chan chan<- engineResult, progressComparisons *int64, numInputEngines int) {
     const subBatchSize = 1000 // Aantal engines per subbatch, pas dit aan naar wens
     var depthInputEngines, fixedInputEngines []string
     for _, engine := range inputEngines {
@@ -336,10 +336,10 @@ func evaluateBatch(engines []string, inputEngines []string, top10000Chan chan<- 
         atomic.AddInt64(progressComparisons, int64(len(subBatch)) * int64(numInputEngines))
         progressMutex.Unlock()
 
-        // Verwerk de resultaten (bijv. top 10.000 scores)
+        // Verwerk de resultaten (bijv. top 100.000 scores)
         h := &minHeap{}
         heap.Init(h)
-        maxSize := 10000
+        maxSize := 100000
         for j, engine := range subBatch {
             totalScore := totalScores[j]
             if totalScore != 0 {
@@ -353,7 +353,7 @@ func evaluateBatch(engines []string, inputEngines []string, top10000Chan chan<- 
             }
         }
         for h.Len() > 0 {
-            top10000Chan <- heap.Pop(h).(engineResult)
+            top100000Chan <- heap.Pop(h).(engineResult)
         }
     }
 }
@@ -420,15 +420,15 @@ func main() {
 		if maxBufferSize > len(generatedEngines) {
 			maxBufferSize = len(generatedEngines)
 		}
-		if maxBufferSize < 10000 {
-			maxBufferSize = 10000
+		if maxBufferSize < 100000 {
+			maxBufferSize = 100000
 		}
 
 		totalEngines := len(generatedEngines)
 		numInputEngines := len(inputEngines)
 		totalMatches := int64(totalEngines) * int64(numInputEngines)
 
-		top10000Chan := make(chan engineResult, 1000000)
+		top100000Chan := make(chan engineResult, 10000000)
 		var wg sync.WaitGroup
 		var progressComparisons int64
 		doneChan := make(chan struct{})
@@ -468,39 +468,39 @@ func main() {
 			go func(threadStart, threadEnd int) {
 				defer wg.Done()
 				batch := generatedEngines[threadStart:threadEnd]
-				evaluateBatch(batch, inputEngines, top10000Chan, &progressComparisons, numInputEngines)
+				evaluateBatch(batch, inputEngines, top100000Chan, &progressComparisons, numInputEngines)
 			}(start, end)
 		}
 
 		go func() {
 			wg.Wait()
-			close(top10000Chan)
+			close(top100000Chan)
 			close(doneChan) // Signaleer de voortgangsrapportage om te stoppen
 		}()
 
-		file, err := os.Create("top_10000_engines.txt")
+		file, err := os.Create("top_100000_engines.txt")
 		if err != nil {
 			fmt.Printf("Fout bij het openen van bestand: %v\n", err)
 			return
 		}
 		defer file.Close()
 
-		top10000 := &minHeap{}
-		heap.Init(top10000)
-		maxSize := 10000
-		for result := range top10000Chan {
-			if top10000.Len() < maxSize {
-				heap.Push(top10000, result)
-			} else if result.score > (*top10000)[0].score {
-				heap.Pop(top10000)
-				heap.Push(top10000, result)
+		top100000 := &minHeap{}
+		heap.Init(top100000)
+		maxSize := 100000
+		for result := range top100000Chan {
+			if top100000.Len() < maxSize {
+				heap.Push(top100000, result)
+			} else if result.score > (*top100000)[0].score {
+				heap.Pop(top100000)
+				heap.Push(top100000, result)
 			}
 		}
 
-		if top10000.Len() > 0 {
+		if top100000.Len() > 0 {
 			results := make([]engineResult, 0, maxSize)
-			for top10000.Len() > 0 {
-				results = append(results, heap.Pop(top10000).(engineResult))
+			for top100000.Len() > 0 {
+				results = append(results, heap.Pop(top100000).(engineResult))
 			}
 			for i := len(results) - 1; i >= 0; i-- {
 				result := results[i]
@@ -510,7 +510,7 @@ func main() {
 					break
 				}
 			}
-			fmt.Printf("Top 10,000 engines opgeslagen uit %d matches.\n", totalMatches)
+			fmt.Printf("Top 100,000 engines opgeslagen uit %d matches.\n", totalMatches)
 		} else {
 			fmt.Println("Geen engines geëvalueerd.")
 		}
