@@ -149,7 +149,16 @@ __global__ void simulateDepthVsFixedKernel(const char* generatedEngines, const c
             if (winner == 1) p1Score++;
             else if (winner == 2) p2Score++;
         }
-        scoreDiffs[generatedIdx * numFixed + fixedIdx] = p1Score - p2Score;
+        
+        // Nieuwe scoreberekening
+        int diff = p1Score - p2Score;
+        if (p1Score > p2Score) {
+            scoreDiffs[generatedIdx * numFixed + fixedIdx] = diff + 10; // Winst: +10
+        } else if (p1Score < p2Score) {
+            scoreDiffs[generatedIdx * numFixed + fixedIdx] = diff - 10; // Verlies: -10
+        } else {
+            scoreDiffs[generatedIdx * numFixed + fixedIdx] = p1Score;   // Gelijkspel: p1Score
+        }
     }
 }
 
@@ -204,7 +213,15 @@ __global__ void simulateDepthVsDepthKernel(const char* generatedEngines, const c
         if (winner == 1) p1Score++;
         else if (winner == 2) p2Score++;
         
-        scoreDiffs[idx * numDepth + idy] = p1Score - p2Score;
+        // Nieuwe scoreberekening
+        int diff = p1Score - p2Score;
+        if (p1Score > p2Score) {
+            scoreDiffs[idx * numDepth + idy] = diff + 10; // Winst: +10
+        } else if (p1Score < p2Score) {
+            scoreDiffs[idx * numDepth + idy] = diff - 10; // Verlies: -10
+        } else {
+            scoreDiffs[idx * numDepth + idy] = p1Score;   // Gelijkspel: p1Score
+        }
     }
 }
 
