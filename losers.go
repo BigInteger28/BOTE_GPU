@@ -312,7 +312,7 @@ func evaluateBatchGPU(engines []string, depthInputEngines []string, fixedInputEn
 }
 
 func evaluateBatch(engines []string, inputEngines []string, top100000Chan chan<- engineResult, progressComparisons *int64, numInputEngines int) {
-    const subBatchSize = 1000 // Aantal engines per subbatch, pas dit aan naar wens
+    const subBatchSize = 20000 // Aantal engines per subbatch, pas dit aan naar wens
     var depthInputEngines, fixedInputEngines []string
     for _, engine := range inputEngines {
         if len(engine) == 12 {
